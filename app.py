@@ -72,55 +72,44 @@ if st.button("⚡ Calcular y Generar Horas", type="primary"):
 
         horas_validas.sort()
         st.session_state.horas_generadas = horas_validas
-        # Guardamos el estado como "No observado", "Trabajando" o "Detenida"
         st.session_state.registro_estados = {h: "No observado" for h in horas_validas}
         
     except ValueError:
         st.error("Por favor, verifica los formatos de hora introducidos.")
 
-# --- BLOQUE 4: PANEL DE CAMPO (REJILLA DE CUADROS DE VERIFICACIÓN) ---
+# --- BLOQUE 4: PANEL DE CAMPO (DISEÑO EN TARJETAS PARA CELULAR) ---
 if st.session_state.horas_generadas:
     st.subheader("📝 Registro de Observaciones en Campo")
     st.info(f"Calculado N = {len(st.session_state.horas_generadas)} muestras.")
     
-    # Encabezados de la tabla móvil estilo rejilla
-    col_h, col_t, col_d = st.columns([2, 3, 3])
-    with col_h: st.markdown("**Hora**")
-    with col_t: st.markdown("**¿Trabajando?**")
-    with col_d: st.markdown("**¿Detenida?**")
-    st.markdown("---")
-    
-    # Generar las filas interactivas con cuadros de verificación (Checkboxes)
+    # Generar un contenedor visual estilizado por cada hora para evitar desbordes móviles
     for h in st.session_state.horas_generadas:
         estado_actual = st.session_state.registro_estados.get(h, "No observado")
         
-        # Determinar si deben aparecer marcados de inicio según la memoria interna
         check_trabajando = (estado_actual == "Trabajando (Sí)")
         check_detenida = (estado_actual == "Detenida (No)")
         
-        c_hora, c_trab, c_det = st.columns([2, 3, 3])
-        
-        with c_hora:
-            st.write(f"⏱️ **{h}**")
+        # Usamos st.container con borde para crear una "tarjeta" limpia en el celular
+        with st.container(border=True):
+            st.markdown(f"⏱️ **Hora de Observación: {h}**")
             
-        with c_trab:
-            # Cuadro para indicar que la máquina SÍ trabaja
-            marcado_t = st.checkbox("Trabajando", value=check_trabajando, key=f"t_{h}", label_visibility="collapsed")
+            # Colocamos los dos checkboxes lado a lado de forma compacta
+            c_trab, c_det = st.columns(2)
+            with c_trab:
+                marcado_t = st.checkbox("Trabajando", value=check_trabajando, key=f"t_{h}")
+            with c_det:
+                marcado_d = st.checkbox("Detenida", value=check_detenida, key=f"d_{h}")
             
-        with c_det:
-            # Cuadro para indicar que la máquina está PARADA
-            marcado_d = st.checkbox("Detenida", value=check_detenida, key=f"d_{h}", label_visibility="collapsed")
-            
-        # Lógica de exclusión mutua inteligente:
-        if marcado_t and not check_trabajando:
-            st.session_state.registro_estados[h] = "Trabajando (Sí)"
-            st.rerun()
-        elif marcado_d and not check_detenida:
-            st.session_state.registro_estados[h] = "Detenida (No)"
-            st.rerun()
-        elif not marcado_t and not marcado_d and estado_actual != "No observado":
-            st.session_state.registro_estados[h] = "No observado"
-            st.rerun()
+            # Lógica de exclusión mutua automática
+            if marcado_t and not check_trabajando:
+                st.session_state.registro_estados[h] = "Trabajando (Sí)"
+                st.rerun()
+            elif marcado_d and not check_detenida:
+                st.session_state.registro_estados[h] = "Detenida (No)"
+                st.rerun()
+            elif not marcado_t and not marcado_d and estado_actual != "No observado":
+                st.session_state.registro_estados[h] = "No observado"
+                st.rerun()
 
     # --- CALCULAR PORCENTAJES EN TIEMPO REAL ---
     valores_registro = list(st.session_state.registro_estados.values())
