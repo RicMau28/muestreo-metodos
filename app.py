@@ -32,7 +32,7 @@ st.subheader("🧮 Parámetros Estadísticos")
 confianza_sel = st.selectbox("Nivel de Confianza:", ["90%", "95%", "99%"], index=1)
 p_input = st.number_input("Porcentaje análisis inicial p (%):", min_value=1, max_value=99, value=60)
 
-# Inicializar estados de la aplicación en memoria de Streamlit
+# Inicializar estados de la aplicación en memoria persistente de Streamlit
 if "horas_generadas" not in st.session_state:
     st.session_state.horas_generadas = []
 if "registro_estados" not in st.session_state:
@@ -77,41 +77,42 @@ if st.button("⚡ Calcular y Generar Horas", type="primary"):
     except ValueError:
         st.error("Por favor, verifica los formatos de hora introducidos.")
 
-# --- BLOQUE 4: PANEL DE CAMPO (DISEÑO EN TARJETAS PARA CELULAR) ---
+# --- Funciones Callbacks para manejar el guardado síncrono sin recargas infinitas ---
+def cambiar_a_trabajando(hora):
+    if st.session_state[f"t_{hora}"]:
+        st.session_state.registro_estados[hora] = "Trabajando (Sí)"
+        st.session_state[f"d_{hora}"] = False  # Desmarcar detenida pasivamente
+    else:
+        st.session_state.registro_estados[hora] = "No observado"
+
+def cambiar_a_detenida(hora):
+    if st.session_state[f"d_{hora}"]:
+        st.session_state.registro_estados[hora] = "Detenida (No)"
+        st.session_state[f"t_{hora}"] = False  # Desmarcar trabajando pasivamente
+    else:
+        st.session_state.registro_estados[hora] = "No observado"
+
+# --- BLOQUE 4: PANEL DE CAMPO (DISEÑO EN TARJETAS CON CALLBACKS) ---
 if st.session_state.horas_generadas:
     st.subheader("📝 Registro de Observaciones en Campo")
     st.info(f"Calculado N = {len(st.session_state.horas_generadas)} muestras.")
     
-    # Generar un contenedor visual estilizado por cada hora para evitar desbordes móviles
     for h in st.session_state.horas_generadas:
         estado_actual = st.session_state.registro_estados.get(h, "No observado")
         
         check_trabajando = (estado_actual == "Trabajando (Sí)")
         check_detenida = (estado_actual == "Detenida (No)")
         
-        # Usamos st.container con borde para crear una "tarjeta" limpia en el celular
         with st.container(border=True):
             st.markdown(f"⏱️ **Hora de Observación: {h}**")
             
-            # Colocamos los dos checkboxes lado a lado de forma compacta
             c_trab, c_det = st.columns(2)
             with c_trab:
-                marcado_t = st.checkbox("Trabajando", value=check_trabajando, key=f"t_{h}")
+                st.checkbox("Trabajando", value=check_trabajando, key=f"t_{h}", on_change=cambiar_a_trabajando, args=(h,))
             with c_det:
-                marcado_d = st.checkbox("Detenida", value=check_detenida, key=f"d_{h}")
-            
-            # Lógica de exclusión mutua automática
-            if marcado_t and not check_trabajando:
-                st.session_state.registro_estados[h] = "Trabajando (Sí)"
-                st.rerun()
-            elif marcado_d and not check_detenida:
-                st.session_state.registro_estados[h] = "Detenida (No)"
-                st.rerun()
-            elif not marcado_t and not marcado_d and estado_actual != "No observado":
-                st.session_state.registro_estados[h] = "No observado"
-                st.rerun()
+                st.checkbox("Detenida", value=check_detenida, key=f"d_{h}", on_change=cambiar_a_detenida, args=(h,))
 
-    # --- CALCULAR PORCENTAJES EN TIEMPO REAL ---
+    # --- CALCULAR PORCENTAJES ---
     valores_registro = list(st.session_state.registro_estados.values())
     t_trabajando = valores_registro.count("Trabajando (Sí)")
     t_detenida = valores_registro.count("Detenida (No)")
