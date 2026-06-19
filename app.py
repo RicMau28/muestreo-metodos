@@ -2,11 +2,11 @@ import streamlit as st
 import random
 from datetime import datetime, timedelta
 
-# Configuración de la página móvil
+# Configuración de la página
 st.set_page_config(page_title="Muestreo Métodos", page_icon="📊", layout="centered")
 
 st.title("📊 Auditoría de Muestreo de Trabajo")
-st.write("Estudio de Métodos - Formato Móvil Multidía")
+st.write("Estudio de Métodos - Formato Multidía")
 
 # --- BLOQUE 1: DATOS DE CONTROL ---
 st.subheader("📋 Datos de Control")
@@ -21,7 +21,7 @@ col_j1, col_j2 = st.columns(2)
 with col_j1:
     inicio_str = st.text_input("Inicio Jornada (HH:MM):", "08:00")
 with col_j2:
-    fin_str = st.text_input("Fin Jornada (HH:MM):", "16:00")
+    fin_str = st.text_input("Fin Jornada (HH:MM):", "18:00")
 
 st.write("Tolerancias Autorizadas (Breaks):")
 texto_descansos = st.text_area("Escribe una por línea usando formato HH:MM-HH:MM", "10:00-10:15\n12:00-12:45")
@@ -77,7 +77,8 @@ if st.button("⚡ Calcular y Planificar Todo el Estudio", type="primary"):
             intentos = 0
             
             while len(horas_dia) < muestras_diarias and intentos < 20000:
-                hora_candidata = inicio_jornada + timedelta(minutes=random.randint(0, minutes_totales))
+                # CORRECCIÓN AQUÍ: Se cambió "minutes_totales" por "minutos_totales" para solucionar el NameError
+                hora_candidata = inicio_jornada + timedelta(minutes=random.randint(0, minutos_totales))
                 en_descanso = any(d_ini <= hora_candidata.time() <= d_fin for d_ini, d_fin in descansos)
                 hora_str = hora_candidata.strftime("%H:%M")
                 
@@ -177,7 +178,7 @@ if st.session_state.dias_planificados:
     html += f"<p>• Auditadas: {total_obs_global} | • Trabajando: {total_trabajando} | • Detenida: {total_detenida}</p>"
     html += f"<p>• <b>UTILIZACIÓN GLOBAL ACUMULADA: {porc_util_global:.2f}%</b></p></div>"
     
-    # Agregar las tablas de cada día individualmente de forma segura
+    # Agregar las tablas de cada día individualmente
     for dia_nombre, horas_lista in st.session_state.dias_planificados.items():
         html += f"<h3>Registros: {dia_nombre}</h3>"
         html += "<table><thead><tr><th>Hora Al Azar</th><th>Estado Registrado</th></tr></thead><tbody>"
